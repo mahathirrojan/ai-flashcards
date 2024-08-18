@@ -1,7 +1,9 @@
 "use client";
 
 import { useUser } from '@clerk/nextjs';
+import { Container, Box, Typography, TextField, Button, Dialog, DialogContent, DialogActions, DialogContentText, DialogTitle, Grid, Card, CardActionArea, CardContent} from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function Generate() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -12,7 +14,7 @@ export default function Generate() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  const handleGenerate = async () => {
+  const handleSubmit = async () => {
     fetch('api/generate', {
       method: 'POST',
       body: text,
@@ -20,17 +22,17 @@ export default function Generate() {
         .then((res) => res.json())
         .then((data) => setFlashcards(data))
     }
-    const handleSubmit = async () => {
-        return('api/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ text }), // Assuming `text` is defined in your state
-        })
-          .then((res) => res.json())
-          .then((data) => setFlashcards(data)); // Assuming `setFlashcards` is a state setter
-      };
+    // const handleSubmit = async () => {
+    //     return('api/generate', {
+    //       method: 'POST',
+    //       headers: {
+    //         'Content-Type': 'application/json',
+    //       },
+    //       body: JSON.stringify({ text }), // Assuming `text` is defined in your state
+    //     })
+    //       .then((res) => res.json())
+    //       .then((data) => setFlashcards(data)); // Assuming `setFlashcards` is a state setter
+    //   };
     
       const handleCardClick = (id) => {
         setFlipped((prev) => ({
@@ -121,6 +123,21 @@ export default function Generate() {
                                 width: '100%',
                                 height: '200px',
                                 boxShadow: '0 4px 8px 0 rgba(0,0,0,0.2)',
+                                transform: flipped[index]? 'rotateY(180deg)' : 'rotateY(0deg)',
+                              },
+                              '& > div > div': {
+                                position:'absolute',
+                                width: '100%',
+                                height: '100%',
+                                backfaceVisibility: 'hidden',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                padding: 2, 
+                                boxSizing: 'border-box'
+                              },
+                              '& > div > div:nth-of-type(2)': {
+                                transform: 'rotateY(180deg)'
                               },
                             }}
                           >
@@ -141,8 +158,25 @@ export default function Generate() {
                   </Grid>
                 ))}
               </Grid>
+              <Box sx={{mt:4, display: 'flex', justifyContent: 'center'}}>
+                <Button variant='contained' color='secondary' onClick={handleOpen}>Save</Button>
+              </Box>
             </Box>
           )}
+
+          <Dialog open={open} onClose={handleClose}>
+            <DialogTitle>Save Flashcards</DialogTitle>
+            <DialogContent>
+              <DialogContentText>Please enter a name for your flashcards collection</DialogContentText>
+              <TextField autoFocus margin="dense" label="Collection Name" type="text" fullWidth value ={name} onChange={(e)=> setName(e.target.value)}/>
+                
+             
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleClose}>Cancel</Button>
+              <Button onClick={saveFlashcards}>Save</Button>
+            </DialogActions>
+          </Dialog>
         </Container>
       );
     }
