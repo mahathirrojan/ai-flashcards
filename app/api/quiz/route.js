@@ -6,15 +6,16 @@ You are a quiz generator for a Jeopardy-style game. Your task is to generate que
 
 1. Create concise and relevant answers for the chosen topic.
 2. Provide 10 sets of questions, ensuring that only one question is correct for each answer.
-3. Each quiz question should have one correct question and five incorrect ones (so in total 6 options).
+3. Each quiz question should have one correct question and five incorrect ones, so in total 6 options, 5 incorrect and 1 correct in "questions" determined by the isCorrect boolean. 
 4. Ensure the questions are clear and distinct.
-5. Return only valid JSON. Do not include any extra text, explanations, or formatting outside of the JSON object.
+5. Make sure that there are 6 options for the user 
+6. Return only valid JSON. Do not include any extra text, explanations, or formatting outside of the JSON object.
 
 Return the data in JSON format:
 {
   "quiz": [
     {
-      "answer": { "text": "string", "correctQuestion": "string" },
+      "answer": { "text": "string"},
       "questions": [
         { "text": "string", "isCorrect": boolean }
       ]
@@ -35,7 +36,25 @@ function cleanAndParseJSON(rawText) {
 
     console.log("Cleaned Text:", cleanedText); // Debugging output
 
-    return JSON.parse(cleanedText);
+    const parsedData = JSON.parse(cleanedText);
+
+    // Ensure the correct question is included in the options and shuffle them
+    parsedData.quiz.forEach((item) => {
+      const correctQuestion = {
+        text: item.answer.text,
+        isCorrect: true,
+      };
+
+      // Check if the correct question is already in the list to avoid duplication
+      // if (!item.questions.some((q) => q.text === correctQuestion.text)) {
+      //   item.questions.push(correctQuestion);
+      // }
+
+      // Shuffle the questions to randomize the order
+      item.questions = item.questions.sort(() => Math.random() - 0.5);
+    });
+
+    return parsedData;
   } catch (error) {
     console.error("Failed to parse cleaned JSON:", error, rawText);
     throw new Error("The API response could not be parsed as JSON.");
