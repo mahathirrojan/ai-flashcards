@@ -1,30 +1,65 @@
 "use client";
 
-import { useUser } from '@clerk/nextjs';
-import { Container, Box, Typography, TextField, Button, Dialog, DialogContent, DialogActions, DialogContentText, DialogTitle, Grid, Card, CardActionArea, CardContent } from '@mui/material';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import db from '@/firebase';
+import { useUser } from "@clerk/nextjs";
+import {
+  Container,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  DialogTitle,
+  Grid,
+  Card,
+  CardActionArea,
+  CardContent,
+} from "@mui/material";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import db from "@/firebase";
 import { writeBatch, doc, getDoc, collection } from "firebase/firestore";
-
-
 
 export default function Generate() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [flashcards, setFlashcards] = useState([]);
   const [flipped, setFlipped] = useState({});
-  const [text, setText] = useState('');
-  const [name, setName] = useState('');
+  const [text, setText] = useState("");
+  const [name, setName] = useState("");
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
+  const [error, setError] = useState("");
+
   const handleSubmit = async () => {
-    fetch('/api/generate', {
-      method: 'POST',
-      body: text,
-    })
-      .then((res) => res.json())
-      .then((data) => setFlashcards(data));
+    console.log("Submitted text:", text); // Debugging log
+    if (!text.trim()) {
+      console.error("Error: Text input is empty");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ topic: text }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Error:", data.error.message);
+        return;
+      }
+
+      setFlashcards(data.flashcards);
+    } catch (error) {
+      console.error("Failed to generate flashcards:", error);
+    }
   };
 
   const handleCardClick = (index) => {
@@ -44,19 +79,19 @@ export default function Generate() {
 
   const saveFlashcards = async () => {
     if (!name) {
-      alert('Please enter a name');
+      alert("Please enter a name");
       return;
     }
 
     const batch = writeBatch(db);
-    const userDocRef = doc(collection(db, 'users'), user.id);
+    const userDocRef = doc(collection(db, "users"), user.id);
     const docSnap = await getDoc(userDocRef);
 
     if (docSnap.exists()) {
       const collections = docSnap.data().flashcards || [];
 
       if (collections.find((m) => m.name === name)) {
-        alert('Flashcard collection with the same name already exists.');
+        alert("Flashcard collection with the same name already exists.");
         return;
       }
 
@@ -68,7 +103,7 @@ export default function Generate() {
 
     await batch.commit();
     handleClose();
-    router.push('/flashcards');
+    router.push("/flashcards");
   };
 
   return (
@@ -79,7 +114,10 @@ export default function Generate() {
         </Typography>
         <TextField
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            console.log("Input value:", e.target.value);
+            setText(e.target.value);
+          }}
           label="Enter text"
           fullWidth
           multiline
@@ -87,7 +125,12 @@ export default function Generate() {
           variant="outlined"
           sx={{ mb: 2 }}
         />
-        <Button variant="contained" color="primary" onClick={handleSubmit} fullWidth>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          fullWidth
+        >
           Generate Flashcards
         </Button>
       </Box>
@@ -102,34 +145,36 @@ export default function Generate() {
                   <CardActionArea onClick={() => handleCardClick(index)}>
                     <Box
                       sx={{
-                        perspective: '1000px',
-                        height: '200px',
+                        perspective: "1000px",
+                        height: "200px",
                       }}
                     >
                       <Box
                         sx={{
-                          position: 'relative',
-                          width: '100%',
-                          height: '100%',
-                          transition: 'transform 0.6s',
-                          transformStyle: 'preserve-3d',
-                          transform: flipped[index] ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                          position: "relative",
+                          width: "100%",
+                          height: "100%",
+                          transition: "transform 0.6s",
+                          transformStyle: "preserve-3d",
+                          transform: flipped[index]
+                            ? "rotateY(180deg)"
+                            : "rotateY(0deg)",
                         }}
                       >
                         <Box
                           sx={{
-                            position: 'absolute',
-                            width: '100%',
-                            height: '100%',
-                            backfaceVisibility: 'hidden',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
+                            position: "absolute",
+                            width: "100%",
+                            height: "100%",
+                            backfaceVisibility: "hidden",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
                             padding: 2,
-                            boxSizing: 'border-box',
-                            backgroundColor: '#fff',
-                            borderRadius: '4px',
-                            boxShadow: '0 4px 8px 0 rgba(0,0,0,0.2)',
+                            boxSizing: "border-box",
+                            backgroundColor: "#fff",
+                            borderRadius: "4px",
+                            boxShadow: "0 4px 8px 0 rgba(0,0,0,0.2)",
                           }}
                         >
                           <Typography variant="h5" component="div">
@@ -138,19 +183,19 @@ export default function Generate() {
                         </Box>
                         <Box
                           sx={{
-                            position: 'absolute',
-                            width: '100%',
-                            height: '100%',
-                            backfaceVisibility: 'hidden',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
+                            position: "absolute",
+                            width: "100%",
+                            height: "100%",
+                            backfaceVisibility: "hidden",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
                             padding: 2,
-                            boxSizing: 'border-box',
-                            backgroundColor: '#fff',
-                            borderRadius: '4px',
-                            boxShadow: '0 4px 8px 0 rgba(0,0,0,0.2)',
-                            transform: 'rotateY(180deg)',
+                            boxSizing: "border-box",
+                            backgroundColor: "#fff",
+                            borderRadius: "4px",
+                            boxShadow: "0 4px 8px 0 rgba(0,0,0,0.2)",
+                            transform: "rotateY(180deg)",
                           }}
                         >
                           <Typography variant="h5" component="div">
@@ -164,7 +209,7 @@ export default function Generate() {
               </Grid>
             ))}
           </Grid>
-          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
             <Button variant="contained" color="secondary" onClick={handleOpen}>
               Save
             </Button>
@@ -175,7 +220,9 @@ export default function Generate() {
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Save Flashcards</DialogTitle>
         <DialogContent>
-          <DialogContentText>Please enter a name for your flashcards collection</DialogContentText>
+          <DialogContentText>
+            Please enter a name for your flashcards collection
+          </DialogContentText>
           <TextField
             autoFocus
             margin="dense"
@@ -191,6 +238,11 @@ export default function Generate() {
           <Button onClick={saveFlashcards}>Save</Button>
         </DialogActions>
       </Dialog>
+      {error && (
+        <Typography color="error" sx={{ mt: 2 }}>
+          {error}
+        </Typography>
+      )}
     </Container>
   );
 }

@@ -1,9 +1,19 @@
-'use client';
-import { useState } from 'react';
-import { Container, Box, Typography, TextField, Button, Grid, Card, CardActionArea, CardContent } from '@mui/material';
+"use client";
+import { useState } from "react";
+import {
+  Container,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Card,
+  CardActionArea,
+  CardContent,
+} from "@mui/material";
 
 export default function QuizPage() {
-  const [topic, setTopic] = useState('');
+  const [topic, setTopic] = useState("");
   const [quizData, setQuizData] = useState([]);
   const [currentAnswer, setCurrentAnswer] = useState(null);
   const [options, setOptions] = useState([]);
@@ -18,32 +28,34 @@ export default function QuizPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/quiz', {
-        method: 'POST',
+      const response = await fetch("/api/quiz", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ topic }),
       });
 
       const data = await response.json();
+      console.log("Quiz API Response:", data);
 
       if (response.ok) {
         setQuizData(data.quiz);
         setQuestionIndex(0);
         setNextQuestion(data.quiz, 0);
       } else {
-        setError(data.error || 'Failed to generate quiz');
+        setError(data.error?.message || "Failed to generate quiz");
       }
     } catch (err) {
-      setError('An error occurred while generating the quiz');
+      setError("An error occurred while generating the quiz");
     } finally {
       setLoading(false);
     }
   };
 
   const setNextQuestion = (data, index) => {
-    if (!Array.isArray(data) || data.length === 0 || index >= data.length) return;
+    if (!Array.isArray(data) || data.length === 0 || index >= data.length)
+      return;
     const next = data[index];
     setCurrentAnswer(next.answer);
     setOptions(next.questions);
@@ -86,13 +98,13 @@ export default function QuizPage() {
           fullWidth
           disabled={loading || !topic}
         >
-          {loading ? 'Generating...' : 'Generate Quiz'}
+          {loading ? "Generating..." : "Generate Quiz"}
         </Button>
 
         {/* Error Display */}
         {error && (
           <Typography variant="body1" color="error" sx={{ mt: 2 }}>
-            {error}
+            {typeof error === "string" ? error : JSON.stringify(error)}
           </Typography>
         )}
       </Box>
@@ -105,7 +117,9 @@ export default function QuizPage() {
 
       {quizData.length > 0 && questionIndex <= 10 && (
         <Box sx={{ mt: 4 }}>
-          <Typography variant="h5">Quiz (Question {questionIndex} of 10)</Typography>
+          <Typography variant="h5">
+            Quiz (Question {questionIndex} of 10)
+          </Typography>
           <Grid container spacing={3}>
             {options.map((option, index) => (
               <Grid item xs={12} sm={6} md={4} key={index}>
@@ -116,9 +130,9 @@ export default function QuizPage() {
                       backgroundColor:
                         selectedOption === option.text
                           ? option.isCorrect
-                            ? 'lightgreen'
-                            : 'lightcoral'
-                          : 'white',
+                            ? "lightgreen"
+                            : "lightcoral"
+                          : "white",
                     }}
                   >
                     <CardContent>
@@ -132,16 +146,14 @@ export default function QuizPage() {
             ))}
           </Grid>
 
-          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="h6">
-              Current Score: {score}
-            </Typography>
+          <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
+            <Typography variant="h6">Current Score: {score}</Typography>
           </Box>
         </Box>
       )}
 
       {questionIndex > 10 && (
-        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
           <Typography variant="h6">
             Quiz Complete! Final Score: {score} out of 10
           </Typography>

@@ -1,75 +1,99 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const systemPrompt = `
 You are a quiz generator for a Jeopardy-style game. Your task is to generate questions and answers where the user is presented with an answer first and must select the correct question. Follow these guidelines:
 
 1. Create concise and relevant answers for the chosen topic.
 2. Provide 10 sets of questions, ensuring that only one question is correct for each answer.
-3. Each quiz question should have one correct question and five incorrect ones (so in total 6 options) .
+3. Each quiz question should have one correct question and five incorrect ones, so in total 6 options, 5 incorrect and 1 correct in "questions" determined by the isCorrect boolean. 
 4. Ensure the questions are clear and distinct.
-5. Escape all double quotes within strings in the JSON output by adding a backslash before them.
-6. Avoid using any characters or formatting that may lead to parsing errors, such as unescaped double quotes or unsupported characters.
-7. Return the data in the following JSON format:
+5. Make sure that there are 6 options for the user 
+6. Return only valid JSON. Do not include any extra text, explanations, or formatting outside of the JSON object.
+
+Return the data in JSON format:
 {
   "quiz": [
     {
-      "answer": { "text": "string", "correctQuestion": "string" },
+      "answer": { "text": "string"},
       "questions": [
         { "text": "string", "isCorrect": boolean }
       ]
     }
   ]
-}`;
+}
+`;
 
-function cleanAndParseJSON(jsonString) {
-  let cleanedString = jsonString;
-
+function cleanAndParseJSON(rawText) {
   try {
-    cleanedString = cleanedString
-      .replace(/\\n/g, '') 
-      .replace(/\\"/g, '"') 
-      .replace(/\\'/g, "'") 
-      .replace(/\\\\/g, '\\') 
-      .replace(/"\s*{/, '{') 
-      .replace(/}\s*"/, '}') 
-      .replace(/\\\"/g, '"') 
-      .replace(/"{/g, '{').replace(/}"/g, '}') 
-      .replace(/\"\[/g, '[').replace(/\]\"/g, ']'); 
+    const cleanedText = rawText
+      .trim() // Remove leading/trailing whitespace
+      .replace(/```json\n?/gi, "") // Remove backticks and "json" markers
+      .replace(/```/g, "") // Remove remaining backticks
+      .replace(/\\n/g, "") // Remove escaped newlines
+      .replace(/\\\"/g, '"') // Replace escaped quotes
+      .replace(/[\u0000-\u001F]+/g, ""); // Remove control characters
 
-    return JSON.parse(cleanedString);
+    console.log("Cleaned Text:", cleanedText); // Debugging output
+
+    const parsedData = JSON.parse(cleanedText);
+
+    // Ensure the correct question is included in the options and shuffle them
+    parsedData.quiz.forEach((item) => {
+      const correctQuestion = {
+        text: item.answer.text,
+        isCorrect: true,
+      };
+
+      // Check if the correct question is already in the list to avoid duplication
+      // if (!item.questions.some((q) => q.text === correctQuestion.text)) {
+      //   item.questions.push(correctQuestion);
+      // }
+
+      // Shuffle the questions to randomize the order
+      item.questions = item.questions.sort(() => Math.random() - 0.5);
+    });
+
+    return parsedData;
   } catch (error) {
-    console.error('Failed to parse cleaned JSON:', error, cleanedString);
-    return null; 
+    console.error("Failed to parse cleaned JSON:", error, rawText);
+    throw new Error("The API response could not be parsed as JSON.");
   }
 }
 
 export async function POST(req) {
-  const openai = new OpenAI();
-
   try {
     const { topic } = await req.json();
 
-    const completion = await openai.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `The chosen topic is "${topic}".` },
-      ],
-      model: "gpt-4",
-    });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    let responseContent = completion.choices[0].message.content;
+    const prompt = `${systemPrompt}\nThe chosen topic is "${topic}".`;
+    console.log("Prompt Sent:", prompt);
 
-    const quiz = cleanAndParseJSON(responseContent);
+    const result = await model.generateContent(prompt);
 
-    if (quiz) {
-      return NextResponse.json(quiz);
-    } else {
-      return NextResponse.json({ error: "Failed to generate a quiz. Please try again." }, { status: 500 });
-    }
+    // Log the full result and raw response
+    console.log("Full Result Object:", JSON.stringify(result, null, 2));
 
+    const rawText =
+      result.response.text?.() || result.response?.text || "No response";
+    console.log("Raw Response:", rawText);
+
+    // Clean and parse the raw response
+    const quizData = cleanAndParseJSON(rawText);
+
+    return NextResponse.json(quizData);
   } catch (error) {
-    console.error('Error creating quiz:', error);
-    return NextResponse.json({ error: { message: error.message } }, { status: 500 });
+    console.error("Error generating quiz:", error);
+    return NextResponse.json(
+      {
+        error: {
+          message:
+            error.message || "An error occurred while generating the quiz.",
+        },
+      },
+      { status: 500 }
+    );
   }
 }
