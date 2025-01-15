@@ -1,4 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* Optional: Keep your reset styles */
 * {
   box-sizing: border-box;
   padding: 0;

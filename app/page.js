@@ -11,6 +11,7 @@ import {
   Grid,
 } from "@mui/material";
 import Head from "next/head";
+import NavBar from "./components/Navbar";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -70,7 +71,7 @@ export default function Home() {
       </Head>
 
       <AppBar position="static">
-        <Toolbar>
+        <NavBar>
           <Typography variant="h6" style={{ flexGrow: 1 }}>
             AI Flashcards
           </Typography>
@@ -89,7 +90,7 @@ export default function Home() {
               </SignedIn>
             </>
           )}
-        </Toolbar>
+        </NavBar>
       </AppBar>
 
       <Box sx={{ textAlign: "center", my: 4 }}>
